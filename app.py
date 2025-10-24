@@ -2,6 +2,8 @@ import telebot
 from flask import Flask, render_template, request
 import sqlite3
 import threading
+from telebot import types
+import json
 
 # === Настройки ===
 TOKEN = "7929683034:AAEz07e103Bgx5cPhNdb22xioUl2Qpr-UZ4"
@@ -22,6 +24,27 @@ def init_db():
 init_db()
 
 # === Flask маршруты ===
+
+@bot.message_handler(commands=['start'])
+def start(message):
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    web_app = types.WebAppInfo("https://your-url.app/")  # вставь URL на mini-app
+    markup.add(types.KeyboardButton("Открыть MiniApp 🌐", web_app=web_app))
+    bot.send_message(message.chat.id, "Привет! Нажми кнопку ниже 👇", reply_markup=markup)
+
+@bot.message_handler(content_types=['web_app_data'])
+def handle_webapp_data(message):
+    try:
+        data = json.loads(message.web_app_data.data)
+    except:
+        data = {}
+    action = data.get("action")
+    if action == "say_hello":
+        msg = data.get("message", "Привет!")
+        bot.send_message(message.chat.id, f"Бот говорит: {msg}")
+    else:
+        bot.send_message(message.chat.id, f"Получены данные: {message.web_app_data.data}")
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -61,4 +84,5 @@ if __name__ == "__main__":
     threading.Thread(target=run_bot, daemon=True).start()
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+
 
